@@ -1,0 +1,49 @@
+﻿@using VoxDB.Components.Common.Services.Interfaces
+@inherits LayoutComponentBase
+@inject ILanguageService LanguageService
+
+<CascadingValue Value="LanguageService">
+    <div class="container">
+        <div class="row">
+            <div class="col-9 main-chat">
+                @Body
+            </div>
+        </div>
+    </div>
+</CascadingValue>
+
+<style>
+    .sidebar {
+        background-color: #f0f0f0;
+        padding: 10px;
+    }
+
+    .main-chat {
+        display: flex;
+        flex-direction: column;
+        height: 100vh;
+    }
+
+    .chat-messages {
+        flex: 1;
+        overflow-y: auto;
+    }
+
+    .input-area {
+        display: flex;
+        align-items: center;
+        padding: 10px;
+        background-color: #fff;
+    }
+
+    .mic-button {
+        cursor: pointer;
+        color: red;
+    }
+</style>
+
+<div id="blazor-error-ui" data-nosnippet>
+    An unhandled error has occurred.
+    <a href="." class="reload">Reload</a>
+    <span class="dismiss">🗙</span>
+</div>

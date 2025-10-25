@@ -1,0 +1,17 @@
+﻿@page "/"
+@using VoxDB.Components.Common.Components.ChatHistory
+@using VoxDB.Components.Common.Components.ChatInput
+@using VoxDB.Components.Common.Components.ChatPanel
+@using VoxDB.Components.Common.Components.CommandList
+@rendermode InteractiveServer
+
+<div class="grid grid-cols-12 gap-4">
+  <div class="col-span-3">
+    <CommandListComponent />
+    <ChatHistoryComponent OnOpen="OpenChat" OnCreate="CreateChat" OnDelete="DeleteChat" SelectedId="_sessionId" />
+  </div>
+  <div class="col-span-9">
+        <ChatPanelComponent SessionId="_sessionId" @ref="_chatPane" />
+        <ChatInputComponent SessionId="_sessionId" OnSend="HandleSend" />
+  </div>
+</div>

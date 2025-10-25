@@ -1,0 +1,27 @@
+﻿<div class="card">
+    <div class="flex items-center justify-between mb-2">
+        <h3>@(LanguageService.IsUa ? "Історія чатів" : "Chat History")</h3>
+        <button class="btn" @onclick="Create">
+            @(LanguageService.IsUa ? "Новий чат" : "New chat")
+        </button>
+    </div>
+
+    @if (_sessions is null)
+    {
+        <p>@(LanguageService.IsUa ? "Завантаження…" : "Loading…")</p>
+    }
+    else
+    {
+        <div class="chat-history-scroll">
+            @foreach (var s in _sessions)
+            {
+                <div class="flex items-center justify-between px-2 py-1 @(SelectedId == s.Id ? "bg-gray-200" : "")">
+                    <a href="javascript:void(0)" @onclick="() => Open(s.Id)">
+                        @s.Title
+                    </a>
+                    <button class="btn btn-danger btn-sm" @onclick="() => Delete(s.Id)">✕</button>
+                </div>
+            }
+        </div>
+    }
+</div>

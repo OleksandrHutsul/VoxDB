@@ -1,0 +1,38 @@
+﻿<div class="chat-input-container">
+    <div class="chat-input flex gap-2 mt-3">
+        <input class="input flex-1"
+               placeholder="@(LanguageService.IsUa ? "Введіть команду або скористайтесь мікрофоном…" : "Enter a command or use the microphone…")"
+               @bind="_text" @bind:event="oninput" />
+
+        <button class="btn" @onclick="SendTextAsync">
+            @(LanguageService.IsUa ? "Відправити" : "Send")
+        </button>
+
+        <button class="btn"
+                disabled="@(!_speechAvailable)"
+                style="@(_listening ? "background:#d93030" : null)"
+                @onclick="ToggleVoiceAsync">
+            @(_listening
+                        ? (LanguageService.IsUa ? "⏹ Зупинити" : "⏹ Stop")
+                        : (LanguageService.IsUa ? "🎤 Говорити" : "🎤 Speak"))
+        </button>
+    </div>
+
+    @if (_listening)
+    {
+        <div class="mt-2 recording-indicator">
+            @(LanguageService.IsUa ? "● Запис..." : "● Recording...")
+        </div>
+    }
+
+    @if (!string.IsNullOrEmpty(_lastTranscript))
+    {
+        <div class="mt-2 text-sm text-gray-600">
+            @(LanguageService.IsUa ? "Розпізнано" : "Recognized"): <b>@_lastTranscript</b>
+            @if (!string.IsNullOrEmpty(_audioUrl))
+            {
+                <div><audio controls src="@_audioUrl"></audio></div>
+            }
+        </div>
+    }
+</div>

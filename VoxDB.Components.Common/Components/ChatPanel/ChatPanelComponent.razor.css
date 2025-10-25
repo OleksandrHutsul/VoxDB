@@ -1,0 +1,80 @@
+﻿.chat-panel {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 18px;
+    box-shadow: var(--shadow);
+    padding: 16px;
+    height: calc(100vh - 160px);
+    overflow: auto;
+    scroll-behavior: smooth;
+}
+
+    .chat-panel::-webkit-scrollbar {
+        width: 10px;
+    }
+
+    .chat-panel::-webkit-scrollbar-thumb {
+        background: linear-gradient(180deg, rgba(104,71,255,.5), rgba(104,71,255,.2));
+        border-radius: 10px;
+    }
+
+    .chat-panel::-webkit-scrollbar-track {
+        background: transparent;
+    }
+
+.msg {
+    display: flex;
+    margin: 10px 0;
+}
+
+    .msg.user {
+        justify-content: flex-end;
+    }
+
+    .msg.system {
+        justify-content: flex-start;
+    }
+
+.bubble {
+    max-width: min(720px, 92%);
+    padding: 10px 14px;
+    border-radius: 16px;
+    line-height: 1.35;
+    box-shadow: 0 6px 16px rgba(0,0,0,.08);
+    border: 1px solid var(--border);
+}
+
+.msg.user .bubble {
+    background: var(--bubble-user);
+    color: #fff;
+    border-color: transparent;
+    border-bottom-right-radius: 6px;
+}
+
+.msg.system .bubble {
+    background: var(--bubble-system);
+    color: var(--text);
+    border-bottom-left-radius: 6px;
+}
+
+/* audio player spacing inside bubble */
+.bubble audio {
+    margin-top: 8px;
+    width: 100%;
+}
+
+@keyframes pop {
+    from {
+        transform: scale(.98);
+        opacity: .0;
+    }
+
+    to {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.msg .bubble {
+    animation: pop .12s ease;
+}

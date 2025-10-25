@@ -1,0 +1,30 @@
+<div class="chat-panel-container">
+    @if (_session is null)
+    {
+        <p>@(LanguageService.IsUa ? "«авантаженн€Е" : "LoadingЕ")</p>
+    }
+    else
+    {
+        <div class="chat-panel">
+            @foreach (var m in _session.Messages.OrderBy(x => x.CreatedAt))
+            {
+                <div class="msg @(m.Role == "user" ? "user" : "system")">
+                    <div class="bubble">
+                        @if (!string.IsNullOrWhiteSpace(m.Text))
+                        {
+                            <div>@m.Text</div>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(m.AudioUrl))
+                        {
+                            <audio controls src="@m.AudioUrl"></audio>
+                        }
+                        @if (!string.IsNullOrWhiteSpace(m.JsonResult))
+                        {
+                            @RenderResultTable(m.JsonResult!)
+                        }
+                    </div>
+                </div>
+            }
+        </div>
+    }
+</div>

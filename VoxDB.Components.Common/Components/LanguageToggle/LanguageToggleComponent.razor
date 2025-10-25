@@ -1,0 +1,11 @@
+<div class="lang-toggle">
+    <button class="lang-btn @(LanguageService.IsUa ? "active" : "")"
+            @onclick=@(() => SetLang("ua"))>
+        UA
+    </button>
+
+    <button class="lang-btn @(LanguageService.IsEn ? "active" : "")"
+            @onclick=@(() => SetLang("en"))>
+        EN
+    </button>
+</div>
