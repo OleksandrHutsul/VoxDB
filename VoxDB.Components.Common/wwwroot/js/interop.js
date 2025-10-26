@@ -89,20 +89,20 @@
                 if (token !== sessionToken) return resolve(false);
 
                 delivered = true;
-
                 ensureStopRecognition();
 
                 await ensureStopRecorder();
                 const audioUrl = await buildAudioUrl();
 
-                const text = (event.results?.[0]?.[0]?.transcript || '').trim();
+                let text = (event.results?.[0]?.[0]?.transcript || '')
+                    .trim()
+                    .replace(/[.,!?]+$/g, ""); 
 
                 if (callbackRef) {
                     try { await callbackRef.invokeMethodAsync('OnTranscript', text, audioUrl); } catch { }
                 }
 
                 ensureStopStream();
-
                 resolve(!!text);
             };
 

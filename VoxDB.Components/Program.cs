@@ -13,8 +13,11 @@ builder.Services.AddRazorComponents()
 builder.Services.AddRazorPages();
 builder.Services.AddServerSideBlazor();
 
-var cs = builder.Configuration.GetConnectionString("Sqlite") ?? "Data Source=vox.db";
-builder.Services.AddDbContext<VoxDbContext>(o => o.UseSqlite(cs));
+var dataDir = Path.Combine(builder.Environment.ContentRootPath, "App_Data");
+Directory.CreateDirectory(dataDir); 
+var dbPath = Path.Combine(dataDir, "vox.db");
+
+builder.Services.AddDbContext<VoxDbContext>(o => o.UseSqlite($"Data Source={dbPath}"));
 
 builder.Services.AddScoped<CommandInterpreter>();
 builder.Services.AddScoped<IChatService, ChatService>();

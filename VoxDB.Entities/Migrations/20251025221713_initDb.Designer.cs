@@ -11,7 +11,7 @@ using VoxDB.Entities.DbContext;
 namespace VoxDB.Entities.Migrations
 {
     [DbContext(typeof(VoxDbContext))]
-    [Migration("20251025202336_initDb")]
+    [Migration("20251025221713_initDb")]
     partial class initDb
     {
         /// <inheritdoc />
