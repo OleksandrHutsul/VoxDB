@@ -19,7 +19,9 @@ VoxDB is a Blazor Server application for working with a small employee directory
 
 The project is a working demonstration of voice as an interface for a fixed set of database operations. It is not a general SQL client and it does not call a separate backend API. Speech recognition runs in the browser. Parsing and data access run in the ASP.NET Core process.
 
-The current domain is one table, `Employees`. You can list every employee, add an employee by name, change an employee’s position by numeric id, or delete an employee by numeric id. Commands are accepted in Ukrainian or English, depending on the language selected in the UI. The default language is Ukrainian. Chat sessions and their messages are stored in the same database.
+The current domain is one table, `Employees`. You can list every employee, add an employee by name, change an employee’s position by numeric id, or delete an employee by numeric id. Commands are accepted in Ukrainian or English, depending on the language selected in the UI. The default language is Ukrainian. Chat sessions and their messages are stored in the same SQLite file.
+
+Each browser gets its own anonymous session id, saved in `localStorage`. Employees, chats, and messages are stored with that id, and queries only return rows for the current browser. Several people can use one deployed database without seeing each other’s data.
 
 ## Features
 
@@ -29,6 +31,7 @@ The current domain is one table, `Employees`. You can list every employee, add a
 - List, insert, update position, and delete for employees
 - A result table when the command returns the employee list
 - Multiple chat sessions, with history saved in SQLite
+- Anonymous per-browser data isolation for employees, chats, and messages
 - Plain-language errors for unknown commands, missing ids, and missing employees
 - Automatic EF Core migrations when the application starts
 - A Docker image that serves the site on port 8080
@@ -75,14 +78,20 @@ Data Source={ContentRootPath}/App_Data/vox.db
 
 and calls `Database.Migrate()`. You do not need to run `dotnet ef database update` to start the app.
 
-`VoxDbContext` lives in `VoxDB.Entities/DbContext/VoxDbContext.cs`. The initial migration is `20251025221713_initDb`. It creates `Employees`, `ChatSessions`, and `ChatMessages`, and seeds two employees:
+`VoxDbContext` lives in `VoxDB.Entities/DbContext/VoxDbContext.cs`. Migrations create `BrowserSessions`, `Employees`, `ChatSessions`, and `ChatMessages`. You do not need a separate database for each user. The browser session id is the owner of the rows.
 
-| Id | Full name | Position |
-| --- | --- | --- |
-| 1 | Ivan Ivanov | Engineer |
-| 2 | Alex Baena | Analyst |
+The first time a browser opens VoxDB, the page stores a new id under `localStorage` key `voxdb.sessionId` and the server creates a `BrowserSession` plus two demo employees:
 
-The repository already contains `VoxDB.Components/App_Data/vox.db` with that migration applied, the seed rows, and some existing chat history. If you delete the file and start the app again, migrations recreate the schema and the two seed employees. Chat history starts empty.
+| Full name | Position |
+| --- | --- |
+| Ivan Ivanov | Engineer |
+| Alex Baena | Analyst |
+
+Later visits with the same browser reuse that id, so the employees and chats stay. A different browser, or a cleared site storage, starts another session with its own demo employees and an empty chat list. “New chat” only adds a chat inside the current session.
+
+Rows that already existed before this isolation change are attached to a private session id created by the migration. They are not shown to new browsers. A session that has not been opened for 30 days is deleted on startup and when another session is opened, including its employees, chats, and messages.
+
+The repository already contains `VoxDB.Components/App_Data/vox.db`. Startup applies any pending migrations to that file. If you delete the file and start the app again, migrations recreate the empty schema; demo employees appear after the browser session is created.
 
 ### Run locally
 
@@ -117,7 +126,7 @@ flowchart TD
     H --> I[Chat panel]
 ```
 
-1. The home page (`VoxDB.Components/Components/Pages/Home.razor`) renders the command list, chat history, chat transcript, and input. It uses Blazor interactive server rendering, so UI events run in the ASP.NET Core process over the Blazor circuit.
+1. The home page (`VoxDB.Components/Components/Pages/Home.razor`) reads or creates `voxdb.sessionId` in `localStorage`, then asks `BrowserSessionService` to create that session if it is new. The page renders the command list, chat history, chat transcript, and input with Blazor interactive server rendering, so UI events run in the ASP.NET Core process over the Blazor circuit.
 2. **Speak** calls `BrowserVoiceService`, which invokes `vox.startListening` in `VoxDB.Components.Common/wwwroot/js/interop.js`.
 3. The script records the microphone and runs one-shot browser speech recognition. The transcript is returned to .NET through the JS-invokable `VoiceCallbacks.OnTranscript` method and placed in the input.
 4. **Send** calls `ChatService`. The service stores the user text, asks `CommandInterpreter` to parse it, and runs the matching employee operation.
@@ -142,7 +151,7 @@ Parsing is regular-expression matching in `CommandInterpreter`. The whole string
 
 | Kind | What it does |
 | --- | --- |
-| `SelectAllEmployees` | Loads all employees ordered by id |
+| `SelectAllEmployees` | Loads the current session’s employees ordered by id |
 | `AddEmployee` | Inserts `FullName`. Position is set to `Невідомо` in Ukrainian mode and `Unknown` in English mode |
 | `UpdateEmployeePosition` | Sets `Position` for an existing numeric id |
 | `DeleteEmployeeById` | Deletes the employee row |
@@ -175,20 +184,30 @@ Persistence is a single SQLite file, `App_Data/vox.db`, accessed only through `V
 
 ```mermaid
 erDiagram
+    BrowserSession ||--o{ Employee : owns
+    BrowserSession ||--o{ ChatSession : owns
     ChatSession ||--o{ ChatMessage : contains
+    BrowserSession {
+        guid Id PK
+        datetime CreatedAt
+        datetime LastSeenAt
+    }
     Employee {
         int Id PK
+        guid BrowserSessionId FK
         string FullName
         string Position
     }
     ChatSession {
         guid Id PK
+        guid BrowserSessionId FK
         string Title
         datetime CreatedAt
         bool IsDeleted
     }
     ChatMessage {
         guid Id PK
+        guid BrowserSessionId
         guid ChatSessionId FK
         datetime CreatedAt
         string Role
@@ -198,11 +217,13 @@ erDiagram
     }
 ```
 
-`Employee` is the business table. `FullName` is required. `Position` is limited to 128 characters.
+`BrowserSession` is the anonymous browser. `LastSeenAt` is updated when that browser opens the app. Sessions last seen more than 30 days ago are removed, and the delete includes their employees and chats.
 
-`ChatSession` is a conversation. Deleting a chat in the UI sets `IsDeleted` and hides it; the row stays in the database. The first command replaces the default title (`Новий чат` or `New chat`) with the command text, truncated at 60 characters.
+`Employee` is the business table. `FullName` is required. `Position` is limited to 128 characters. Every query in `ChatService` filters on `BrowserSessionId`, so an employee id from another session is treated as missing.
 
-`ChatMessage` belongs to a session and is removed with the session if the session row is actually deleted (`ON DELETE CASCADE`). `Role` is `user` or `system`. `JsonResult` holds the serialized employee list for a successful select. `AudioUrl` exists on the model, but the current input component does not populate it.
+`ChatSession` is a conversation inside one browser session. Deleting a chat in the UI sets `IsDeleted` and hides it; the row stays in the database. The first command replaces the default title (`Новий чат` or `New chat`) with the command text, truncated at 60 characters.
+
+`ChatMessage` stores `BrowserSessionId` as well as `ChatSessionId`. Messages are removed with the chat if the chat row is actually deleted (`ON DELETE CASCADE`). `Role` is `user` or `system`. `JsonResult` holds the serialized employee list for a successful select. `AudioUrl` exists on the model, but the current input component does not populate it.
 
 ## Architecture
 
@@ -218,7 +239,7 @@ VoxDB.Entities
 
 **VoxDB.Components** is the ASP.NET Core host. It contains `Program.cs`, the Blazor `App`, routes, layout, the home page, `wwwroot`, `appsettings`, and `App_Data`. It references `VoxDB.Components.Common` and the EF Core design package so migrations can be applied from the startup project.
 
-**VoxDB.Components.Common** is a Razor class library. It contains the chat UI (history, transcript, input, command examples, language toggle), `ChatService`, `CommandInterpreter`, `BrowserVoiceService`, `LanguageService`, the command DTO and enum, message text in `CommandHelper`, and `wwwroot/js/interop.js`. It references `VoxDB.Entities`.
+**VoxDB.Components.Common** is a Razor class library. It contains the chat UI (history, transcript, input, command examples, language toggle), `ChatService`, `CommandInterpreter`, `BrowserSessionService`, `BrowserVoiceService`, `LanguageService`, the command DTO and enum, message text in `CommandHelper`, and `wwwroot/js/interop.js`. It references `VoxDB.Entities`.
 
 **VoxDB.Entities** is a class library. It contains `VoxDbContext`, the `Employee`, `ChatSession`, and `ChatMessage` models, and the EF Core migrations. It references `Microsoft.EntityFrameworkCore.Sqlite` 9.0.9.
 
@@ -300,7 +321,7 @@ docker run \
   voxdb
 ```
 
-An empty volume hides the database baked into the image. The next startup creates `/app/App_Data/vox.db` and applies migrations, including the two seed employees.
+An empty volume hides the database baked into the image. The next startup creates `/app/App_Data/vox.db` and applies migrations. Each browser then receives its own session and demo employees in that file.
 
 `localhost` is a secure context, so the microphone can work against `http://localhost:8080`. A remote browser using plain HTTP will not get microphone access.
 
@@ -312,8 +333,8 @@ If database changes must survive a redeploy, the host has to give the process a 
 
 ## Security and Configuration Notes
 
-- The site has no authentication or authorization. Anyone who can open it can change employees and chat history.
-- Do not treat the committed `vox.db` as production data. It is a local demo file and it already contains chat history.
+- The site has no user accounts. Isolation is the session id in `localStorage`. Anyone who can copy that id into another browser can open the same employees and chats. Do not treat it as a login.
+- Do not treat the committed `vox.db` as production data. It is a local demo file. Rows created before per-browser isolation stay on a migration session and are not shown to new visitors.
 - There are no speech-provider credentials to store. Do not add API keys to `appsettings.json` and commit them.
 - Grant microphone access only on a host you trust. In Chromium, recognition audio is handled by the browser’s speech service, not by application code in this repository.
 - Non-development hosting enables HSTS and the exception handler path `/Error`. The repository does not include an Error page, so that path has no UI of its own.
@@ -327,6 +348,7 @@ If database changes must survive a redeploy, the host has to give the process a 
 - Voice input depends on the browser Web Speech API. Firefox does not implement it, so the speak button stays disabled there. Recognition in Chromium generally needs network access.
 - The speak button copies text into the input. You still press Send. The recording is not saved on the chat message.
 - A language change also asks the speech script to switch to `auto` mode, while the toggle itself requests `ua` or `en`. Those two calls are issued separately.
-- SQLite is one file with one writer. This suits the demo; it is not a multi-user database server.
-- Chat delete is a soft delete. There is no user account, no authorization, and no automated test project.
+- SQLite is one file with one writer. Browsers are isolated by session id, but the file is still a single-writer database.
+- A browser session that is not opened for 30 days is deleted with its employees, chats, and messages.
+- Chat delete is a soft delete. There is no user account and no automated test project.
 - Without a volume, Docker database changes do not survive replacement of the container.

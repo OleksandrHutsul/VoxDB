@@ -3,6 +3,7 @@
 public class ChatMessage
 {
     public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid BrowserSessionId { get; set; }
     public Guid ChatSessionId { get; set; }
     public DateTime CreatedAt { get; set; } = DateTime.UtcNow;
 

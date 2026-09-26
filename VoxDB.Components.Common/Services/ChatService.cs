@@ -1,6 +1,5 @@
-﻿using Microsoft.EntityFrameworkCore;
-using Microsoft.VisualBasic;
-using System.Text.Json;
+﻿using System.Text.Json;
+using Microsoft.EntityFrameworkCore;
 using VoxDB.Components.Common.DTOs;
 using VoxDB.Components.Common.Enum;
 using VoxDB.Components.Common.Extensions;
@@ -16,20 +15,30 @@ public class ChatService : IChatService
     private readonly VoxDbContext _voxDbContext;
     private readonly CommandInterpreter _commandInterpreter;
     private readonly ILanguageService _languageService;
+    private readonly IBrowserSessionContext _browserSession;
 
-    public ChatService(VoxDbContext voxDbContext, CommandInterpreter commandInterpreter, ILanguageService languageService)
+    public ChatService(
+        VoxDbContext voxDbContext,
+        CommandInterpreter commandInterpreter,
+        ILanguageService languageService,
+        IBrowserSessionContext browserSession)
     {
         _voxDbContext = voxDbContext;
         _commandInterpreter = commandInterpreter;
         _languageService = languageService;
+        _browserSession = browserSession;
     }
 
     public Task<List<ChatSession>> GetSessionsAsync(CancellationToken ct = default) =>
-        _voxDbContext.ChatSessions.Where(s => !s.IsDeleted).OrderByDescending(s => s.CreatedAt).ToListAsync(ct);
+        OwnedChats().Where(s => !s.IsDeleted).OrderByDescending(s => s.CreatedAt).ToListAsync(ct);
 
     public async Task<ChatSession> CreateSessionAsync(string? title = null, CancellationToken ct = default)
     {
-        var s = new ChatSession { Title = title ?? (_languageService.IsUa ? "Новий чат" : "New chat") };
+        var s = new ChatSession
+        {
+            BrowserSessionId = BrowserSessionId,
+            Title = title ?? (_languageService.IsUa ? "Новий чат" : "New chat")
+        };
         _voxDbContext.ChatSessions.Add(s);
         await _voxDbContext.SaveChangesAsync(ct);
         return s;
@@ -37,25 +46,38 @@ public class ChatService : IChatService
 
     public async Task DeleteSessionAsync(Guid sessionId, CancellationToken ct = default)
     {
-        var s = await _voxDbContext.ChatSessions.FindAsync([sessionId], ct);
+        var s = await OwnedChats().FirstOrDefaultAsync(x => x.Id == sessionId, ct);
         if (s is null) return;
         s.IsDeleted = true;
         await _voxDbContext.SaveChangesAsync(ct);
     }
 
-    public Task<ChatSession?> GetSessionAsync(Guid id, CancellationToken ct = default) =>
-        _voxDbContext.ChatSessions.Include(x => x.Messages.OrderBy(m => m.CreatedAt)).FirstOrDefaultAsync(x => x.Id == id, ct);
+    public Task<ChatSession?> GetSessionAsync(Guid id, CancellationToken ct = default)
+    {
+        var browserSessionId = BrowserSessionId;
+        return OwnedChats()
+            .Include(x => x.Messages.Where(m => m.BrowserSessionId == browserSessionId).OrderBy(m => m.CreatedAt))
+            .FirstOrDefaultAsync(x => x.Id == id, ct);
+    }
 
     public async Task<CommandResult> SendUserCommandAsync(Guid sessionId, string userText, string? audioUrl = null, CancellationToken ct = default)
     {
-        var exists = await _voxDbContext.ChatSessions.AnyAsync(s => s.Id == sessionId && !s.IsDeleted, ct);
+        var exists = await OwnedChats().AnyAsync(s => s.Id == sessionId && !s.IsDeleted, ct);
         if (!exists)
         {
             var created = await CreateSessionAsync(ct: ct);
             sessionId = created.Id;
         }
 
-        var userMsg = new ChatMessage { ChatSessionId = sessionId, Role = "user", Text = userText, AudioUrl = audioUrl };
+        var browserSessionId = BrowserSessionId;
+        var userMsg = new ChatMessage
+        {
+            BrowserSessionId = browserSessionId,
+            ChatSessionId = sessionId,
+            Role = "user",
+            Text = userText,
+            AudioUrl = audioUrl
+        };
         _voxDbContext.ChatMessages.Add(userMsg);
 
         var parsed = _commandInterpreter.Parse(userText);
@@ -63,6 +85,7 @@ public class ChatService : IChatService
 
         var systemMsg = new ChatMessage
         {
+            BrowserSessionId = browserSessionId,
             ChatSessionId = sessionId,
             Role = "system",
             Text = result.Message,
@@ -70,7 +93,7 @@ public class ChatService : IChatService
         };
         _voxDbContext.ChatMessages.Add(systemMsg);
 
-        var session = await _voxDbContext.ChatSessions.FirstAsync(s => s.Id == sessionId, ct);
+        var session = await OwnedChats().FirstAsync(s => s.Id == sessionId, ct);
         var defaultTitle = _languageService.IsUa ? "Новий чат" : "New chat";
         if (session.Title == defaultTitle || string.IsNullOrWhiteSpace(session.Title))
             session.Title = userText.Length > 60 ? userText[..60] + "…" : userText;
@@ -85,14 +108,19 @@ public class ChatService : IChatService
         {
             case CommandKind.SelectAllEmployees:
                 {
-                    var list = await _voxDbContext.Employees.OrderBy(e => e.Id).ToListAsync(ct);
+                    var list = await OwnedEmployees().OrderBy(e => e.Id).ToListAsync(ct);
                     return new CommandResult { Success = true, Message = CommandHelper.FoundEmployees(_languageService, list.Count), Data = list };
                 }
             case CommandKind.AddEmployee:
                 {
                     if (!cmd.Args.TryGetValue("name", out var name) || string.IsNullOrWhiteSpace(name))
                         return Fail(CommandHelper.MissingEmployeeName(_languageService));
-                    _voxDbContext.Employees.Add(new Employee { FullName = name, Position = _languageService.IsUa ? "Невідомо" : "Unknown" });
+                    _voxDbContext.Employees.Add(new Employee
+                    {
+                        BrowserSessionId = BrowserSessionId,
+                        FullName = name,
+                        Position = _languageService.IsUa ? "Невідомо" : "Unknown"
+                    });
                     await _voxDbContext.SaveChangesAsync(ct);
                     return Ok(CommandHelper.AddedEmployee(_languageService, name));
                 }
@@ -102,7 +130,7 @@ public class ChatService : IChatService
                         !cmd.Args.TryGetValue("pos", out var pos) || string.IsNullOrWhiteSpace(pos))
                         return Fail(CommandHelper.NeedIdAndPosition(_languageService));
 
-                    var emp = await _voxDbContext.Employees.FindAsync([id], ct);
+                    var emp = await OwnedEmployees().FirstOrDefaultAsync(e => e.Id == id, ct);
                     if (emp is null) return Fail(CommandHelper.EmployeeNotExists(_languageService, id));
 
                     emp.Position = pos;
@@ -114,7 +142,7 @@ public class ChatService : IChatService
                     if (!cmd.Args.TryGetValue("id", out var sId) || !int.TryParse(sId, out var id))
                         return Fail(CommandHelper.InvalidId(_languageService));
 
-                    var toDel = await _voxDbContext.Employees.FindAsync([id], ct);
+                    var toDel = await OwnedEmployees().FirstOrDefaultAsync(e => e.Id == id, ct);
                     if (toDel is null) return Fail(CommandHelper.EmployeeNotExists(_languageService, id));
 
                     _voxDbContext.Employees.Remove(toDel);
@@ -127,5 +155,28 @@ public class ChatService : IChatService
 
         static CommandResult Ok(string m) => new() { Success = true, Message = m };
         static CommandResult Fail(string m) => new() { Success = false, Message = m };
+    }
+
+    private Guid BrowserSessionId
+    {
+        get
+        {
+            if (!_browserSession.IsReady || _browserSession.SessionId == Guid.Empty)
+                throw new InvalidOperationException("Browser session is not initialized.");
+
+            return _browserSession.SessionId;
+        }
+    }
+
+    private IQueryable<Employee> OwnedEmployees()
+    {
+        var browserSessionId = BrowserSessionId;
+        return _voxDbContext.Employees.Where(e => e.BrowserSessionId == browserSessionId);
+    }
+
+    private IQueryable<ChatSession> OwnedChats()
+    {
+        var browserSessionId = BrowserSessionId;
+        return _voxDbContext.ChatSessions.Where(s => s.BrowserSessionId == browserSessionId);
     }
 }

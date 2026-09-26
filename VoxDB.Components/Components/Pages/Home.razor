@@ -8,10 +8,16 @@
 <div class="grid grid-cols-12 gap-4">
   <div class="col-span-3">
     <CommandListComponent />
-    <ChatHistoryComponent OnOpen="OpenChat" OnCreate="CreateChat" OnDelete="DeleteChat" SelectedId="_sessionId" />
+    @if (_browserReady)
+    {
+        <ChatHistoryComponent OnOpen="OpenChat" OnCreate="CreateChat" OnDelete="DeleteChat" SelectedId="_sessionId" />
+    }
   </div>
   <div class="col-span-9">
+    @if (_browserReady)
+    {
         <ChatPanelComponent SessionId="_sessionId" @ref="_chatPane" />
         <ChatInputComponent SessionId="_sessionId" OnSend="HandleSend" />
+    }
   </div>
 </div>

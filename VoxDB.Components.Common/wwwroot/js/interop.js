@@ -1,11 +1,43 @@
 ﻿window.vox = (function () {
+    const sessionIdKey = "voxdb.sessionId";
     let recognition = null;
     let mediaRecorder = null;
     let stream = null;
     let audioChunks = [];
     let callbackRef = null;
     let mode = 'auto'; 
-    let sessionToken = 0; 
+    let sessionToken = 0;
+
+    function isGuid(value) {
+        return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(value || "");
+    }
+
+    function newSessionId() {
+        if (window.crypto && typeof crypto.randomUUID === "function")
+            return crypto.randomUUID();
+
+        return "xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx".replace(/[xy]/g, function (c) {
+            const r = Math.random() * 16 | 0;
+            const v = c === "x" ? r : (r & 0x3 | 0x8);
+            return v.toString(16);
+        });
+    }
+
+    function getOrCreateSessionId() {
+        try {
+            const existing = localStorage.getItem(sessionIdKey);
+            if (isGuid(existing))
+                return existing;
+        } catch { }
+
+        const id = newSessionId();
+        setSessionId(id);
+        return id;
+    }
+
+    function setSessionId(id) {
+        try { localStorage.setItem(sessionIdKey, id); } catch { }
+    } 
 
     function isSpeechAvailable() {
         return !!(window.SpeechRecognition || window.webkitSpeechRecognition);
@@ -146,5 +178,5 @@
         await cleanupAll();
     }
 
-    return { isSpeechAvailable, startListening, stopListening, setMode };
+    return { isSpeechAvailable, startListening, stopListening, setMode, getOrCreateSessionId, setSessionId };
 })();

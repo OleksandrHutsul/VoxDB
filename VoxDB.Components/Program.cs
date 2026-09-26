@@ -23,6 +23,8 @@ builder.Services.AddScoped<CommandInterpreter>();
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IVoiceService, BrowserVoiceService>();
 builder.Services.AddScoped<ILanguageService, LanguageService>();
+builder.Services.AddScoped<IBrowserSessionContext, BrowserSessionContext>();
+builder.Services.AddScoped<IBrowserSessionService, BrowserSessionService>();
 
 var app = builder.Build();
 
@@ -30,6 +32,8 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<VoxDbContext>();
     db.Database.Migrate();
+    var sessions = scope.ServiceProvider.GetRequiredService<IBrowserSessionService>();
+    await sessions.PurgeExpiredAsync();
 }
 
 if (!app.Environment.IsDevelopment())
