@@ -1,6 +1,7 @@
 ﻿<div class="chat-input-container">
     <div class="chat-input flex gap-2 mt-3">
-        <input class="input flex-1"
+        <input @ref="_input"
+               class="input flex-1"
                placeholder="@(LanguageService.IsUa ? "Введіть команду або скористайтесь мікрофоном…" : "Enter a command or use the microphone…")"
                @bind="_text" @bind:event="oninput" />
 

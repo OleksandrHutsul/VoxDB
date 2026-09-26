@@ -1,8 +1,177 @@
-﻿.card {
+﻿.command-panel {
+    height: auto;
     background: var(--card);
     border: 1px solid var(--border);
     border-radius: 16px;
     box-shadow: var(--shadow);
     padding: 16px;
-    height: 100%;
+    animation: command-in .32s ease;
+}
+
+.command-toolbar {
+    margin-bottom: 12px;
+}
+
+.command-panel h3 {
+    margin: 0;
+    font-size: 1.05rem;
+}
+
+.command-lead {
+    margin: 4px 0 12px;
+    color: var(--muted);
+    font-size: .85rem;
+}
+
+.command-list {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+}
+
+.command-row {
+    appearance: none;
+    width: 100%;
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+    margin: 0;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: color-mix(in srgb, var(--bg) 70%, var(--card));
+    color: var(--text);
+    font: inherit;
+    line-height: 1.35;
+    text-align: left;
+    cursor: pointer;
+    transition: background .16s ease, border-color .16s ease;
+}
+
+.command-row:hover {
+    background: color-mix(in srgb, var(--primary) 10%, var(--card));
+    border-color: color-mix(in srgb, var(--primary) 42%, var(--border));
+}
+
+.command-row:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+.command-text {
+    min-width: 0;
+    flex: 1;
+    overflow-wrap: break-word;
+}
+
+.mark {
+    position: relative;
+    width: 22px;
+    height: 22px;
+    flex: 0 0 22px;
+    margin-top: 1px;
+    border-radius: 7px;
+    border: 1px solid color-mix(in srgb, var(--primary) 34%, var(--border));
+    background: color-mix(in srgb, var(--primary) 14%, var(--card));
+}
+
+.mark-select::before,
+.mark-select::after {
+    content: "";
+    position: absolute;
+    border-radius: 50%;
+}
+
+.mark-select::before {
+    left: 5px;
+    top: 5px;
+    width: 10px;
+    height: 10px;
+    border: 1.5px solid var(--primary);
+    box-sizing: border-box;
+}
+
+.mark-select::after {
+    left: 8px;
+    top: 8px;
+    width: 4px;
+    height: 4px;
+    background: var(--primary);
+}
+
+.mark-add::before,
+.mark-add::after,
+.mark-delete::before,
+.mark-delete::after {
+    content: "";
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    border-radius: 1px;
+    background: var(--primary);
+}
+
+.mark-add::before {
+    width: 10px;
+    height: 1.5px;
+    transform: translate(-50%, -50%);
+}
+
+.mark-add::after {
+    width: 1.5px;
+    height: 10px;
+    transform: translate(-50%, -50%);
+}
+
+.mark-update::before {
+    content: "";
+    position: absolute;
+    left: 5px;
+    top: 5px;
+    width: 9px;
+    height: 9px;
+    border: 1.5px solid var(--primary);
+    border-right-color: transparent;
+    border-radius: 50%;
+    transform: rotate(-35deg);
+}
+
+.mark-delete {
+    border-color: color-mix(in srgb, var(--danger) 40%, var(--border));
+    background: color-mix(in srgb, var(--danger) 10%, var(--card));
+}
+
+.mark-delete::before,
+.mark-delete::after {
+    width: 10px;
+    height: 1.5px;
+    background: var(--danger);
+}
+
+.mark-delete::before {
+    transform: translate(-50%, -50%) rotate(45deg);
+}
+
+.mark-delete::after {
+    transform: translate(-50%, -50%) rotate(-45deg);
+}
+
+@keyframes command-in {
+    from {
+        opacity: 0;
+        transform: translateY(8px);
+    }
+
+    to {
+        opacity: 1;
+        transform: none;
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .command-panel,
+    .command-row {
+        animation: none;
+        transition: none;
+    }
 }

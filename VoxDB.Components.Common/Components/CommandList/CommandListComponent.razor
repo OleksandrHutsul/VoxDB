@@ -1,21 +1,17 @@
 @using VoxDB.Components.Common.Components.LanguageToggle
-<div class="card" style="height: max-content;">
-  <LanguageToggleComponent />
-    <h3>@(LanguageService.IsUa ? "Команди (приклади)" : "Commands (examples)")</h3>
-    <ul>
-        @if (LanguageService.IsUa)
+<div class="command-panel">
+    <div class="command-toolbar">
+        <LanguageToggleComponent />
+    </div>
+    <h3>@(LanguageService.IsUa ? "РљРѕРјР°РЅРґРё" : "Commands")</h3>
+    <p class="command-lead">@(LanguageService.IsUa ? "РЎРїСЂРѕР±СѓР№С‚Рµ РѕРґРЅСѓ Р· С†РёС… РєРѕРјР°РЅРґ" : "Try one of these commands")</p>
+    <div class="command-list">
+        @foreach (var example in Examples)
         {
-            <li>“Покажи всіх працівників”</li>
-            <li>“Додай працівника Іван Іванов”</li>
-            <li>“Онови посаду працівника з ID 3 на менеджер”</li>
-            <li>“Видали працівника з ID 5”</li>
+            <button type="button" class="command-row" @onclick="() => SelectAsync(example.Text)">
+                <span class="mark mark-@example.Kind" aria-hidden="true"></span>
+                <span class="command-text">@example.Text</span>
+            </button>
         }
-        else
-        {
-            <li>“Show all employees”</li>
-            <li>“Add employee John Smith”</li>
-            <li>“Update employee with ID 3 to manager”</li>
-            <li>“Delete employee with ID 5”</li>
-        }
-    </ul>
+    </div>
 </div>

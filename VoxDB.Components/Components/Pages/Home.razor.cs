@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Components;
 using Microsoft.JSInterop;
+using VoxDB.Components.Common.Components.ChatInput;
 using VoxDB.Components.Common.Components.ChatPanel;
 using VoxDB.Components.Common.Services.Interfaces;
 
@@ -15,6 +16,7 @@ public partial class Home
     private Guid _sessionId;
     private bool _browserReady;
     private ChatPanelComponent? _chatPane;
+    private ChatInputComponent? _chatInput;
 
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
@@ -72,6 +74,12 @@ public partial class Home
         }
 
         StateHasChanged();
+    }
+
+    private async Task UseExample(string command)
+    {
+        if (_chatInput is not null)
+            await _chatInput.SetCommandAsync(command);
     }
 
     private async Task HandleSend()

@@ -15,6 +15,7 @@ public partial class ChatInputComponent : IDisposable
     [Parameter] public EventCallback OnSend { get; set; }
 
     private string _text = "";
+    private ElementReference _input;
     private bool _speechAvailable;
     private bool _listening;
     private string? _lastTranscript;
@@ -45,6 +46,13 @@ public partial class ChatInputComponent : IDisposable
             _speechAvailable = await VoiceService.IsSpeechSupportedAsync();
             StateHasChanged();
         }
+    }
+
+    public async Task SetCommandAsync(string command)
+    {
+        _text = command;
+        await InvokeAsync(StateHasChanged);
+        await _input.FocusAsync();
     }
 
     private async Task SendTextAsync()

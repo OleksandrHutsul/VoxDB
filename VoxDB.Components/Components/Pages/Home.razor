@@ -3,21 +3,38 @@
 @using VoxDB.Components.Common.Components.ChatInput
 @using VoxDB.Components.Common.Components.ChatPanel
 @using VoxDB.Components.Common.Components.CommandList
+@using VoxDB.Components.Common.Services.Interfaces
+@inject ILanguageService LanguageService
 @rendermode InteractiveServer
 
-<div class="grid grid-cols-12 gap-4">
-  <div class="col-span-3">
-    <CommandListComponent />
-    @if (_browserReady)
-    {
-        <ChatHistoryComponent OnOpen="OpenChat" OnCreate="CreateChat" OnDelete="DeleteChat" SelectedId="_sessionId" />
-    }
-  </div>
-  <div class="col-span-9">
-    @if (_browserReady)
-    {
-        <ChatPanelComponent SessionId="_sessionId" @ref="_chatPane" />
-        <ChatInputComponent SessionId="_sessionId" OnSend="HandleSend" />
-    }
-  </div>
-</div>
+@if (!_browserReady)
+{
+    <div class="boot" role="status" aria-live="polite">
+        <div class="boot-card">
+            <div class="db" aria-hidden="true">
+                <span class="db-side"></span>
+                <span class="db-disk db-disk-top"></span>
+                <span class="db-disk db-disk-mid"></span>
+                <span class="db-disk db-disk-bot"></span>
+                <span class="db-scan"></span>
+            </div>
+            <p class="boot-title">@(LanguageService.IsUa ? "Ініціалізація VoxDB…" : "Initializing VoxDB…")</p>
+            <p class="boot-sub">@(LanguageService.IsUa ? "Підготовка сесії" : "Preparing your session")</p>
+        </div>
+    </div>
+}
+else
+{
+    <div class="app-enter">
+        <div class="grid grid-cols-12 gap-4">
+            <div class="col-span-3">
+                <CommandListComponent OnExampleSelected="UseExample" />
+                <ChatHistoryComponent OnOpen="OpenChat" OnCreate="CreateChat" OnDelete="DeleteChat" SelectedId="_sessionId" />
+            </div>
+            <div class="col-span-9">
+                <ChatPanelComponent SessionId="_sessionId" @ref="_chatPane" />
+                <ChatInputComponent @ref="_chatInput" SessionId="_sessionId" OnSend="HandleSend" />
+            </div>
+        </div>
+    </div>
+}
