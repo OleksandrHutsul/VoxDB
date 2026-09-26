@@ -1,5 +1,6 @@
 ﻿window.vox = (function () {
     const sessionIdKey = "voxdb.sessionId";
+    const languageKey = "voxdb.language";
     let recognition = null;
     let mediaRecorder = null;
     let stream = null;
@@ -37,6 +38,21 @@
 
     function setSessionId(id) {
         try { localStorage.setItem(sessionIdKey, id); } catch { }
+    }
+
+    function getLanguage() {
+        try {
+            const value = localStorage.getItem(languageKey);
+            if (value === "ua" || value === "en")
+                return value;
+        } catch { }
+        return null;
+    }
+
+    function setLanguage(lang) {
+        if (lang !== "ua" && lang !== "en")
+            return;
+        try { localStorage.setItem(languageKey, lang); } catch { }
     } 
 
     function isSpeechAvailable() {
@@ -178,5 +194,5 @@
         await cleanupAll();
     }
 
-    return { isSpeechAvailable, startListening, stopListening, setMode, getOrCreateSessionId, setSessionId };
+    return { isSpeechAvailable, startListening, stopListening, setMode, getOrCreateSessionId, setSessionId, getLanguage, setLanguage };
 })();

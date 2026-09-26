@@ -6,6 +6,7 @@ public interface ILanguageService
     bool IsUa { get; }
     bool IsEn { get; }
     void Set(string lang);
+    Task RestoreAsync();
     event Action<string>? OnChanged;
 }
 

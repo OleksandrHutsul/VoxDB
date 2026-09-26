@@ -18,8 +18,11 @@
                 <span class="db-disk db-disk-bot"></span>
                 <span class="db-scan"></span>
             </div>
-            <p class="boot-title">@(LanguageService.IsUa ? "Ініціалізація VoxDB…" : "Initializing VoxDB…")</p>
-            <p class="boot-sub">@(LanguageService.IsUa ? "Підготовка сесії" : "Preparing your session")</p>
+            @if (_languageReady)
+            {
+                <p class="boot-title">@(LanguageService.IsUa ? "Ініціалізація VoxDB…" : "Initializing VoxDB…")</p>
+                <p class="boot-sub">@(LanguageService.IsUa ? "Підготовка сесії" : "Preparing your session")</p>
+            }
         </div>
     </div>
 }

@@ -21,3 +21,80 @@
         background: rgba(0,0,0,.2);
         border-radius: 8px;
     }
+
+.chat-history-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-bottom: 4px;
+    padding: 2px;
+    border-radius: 10px;
+}
+
+.chat-history-item.is-selected {
+    background: rgba(0,0,0,.06);
+}
+
+.chat-history-open,
+.chat-history-delete {
+    appearance: none;
+    font: inherit;
+    cursor: pointer;
+    transition: background .16s ease, border-color .16s ease;
+}
+
+.chat-history-open {
+    flex: 1;
+    min-width: 0;
+    border: none;
+    background: transparent;
+    color: var(--text);
+    text-align: left;
+    padding: 6px 8px;
+    border-radius: 8px;
+}
+
+.chat-history-open:hover {
+    background: color-mix(in srgb, var(--primary) 8%, transparent);
+}
+
+.chat-history-title {
+    display: block;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.chat-history-delete {
+    flex: 0 0 auto;
+    width: 28px;
+    height: 28px;
+    border-radius: 8px;
+    border: 1px solid color-mix(in srgb, var(--danger) 40%, var(--border));
+    background: color-mix(in srgb, var(--danger) 10%, var(--card));
+    color: var(--danger);
+    line-height: 1;
+}
+
+.chat-history-delete:hover {
+    background: color-mix(in srgb, var(--danger) 18%, var(--card));
+}
+
+.chat-history-open:focus-visible,
+.chat-history-delete:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+@media (prefers-color-scheme: dark) {
+    .chat-history-item.is-selected {
+        background: rgba(255,255,255,.06);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .chat-history-open,
+    .chat-history-delete {
+        transition: none;
+    }
+}

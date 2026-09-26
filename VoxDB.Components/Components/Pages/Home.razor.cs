@@ -14,6 +14,7 @@ public partial class Home
     [Inject] public required IBrowserSessionService BrowserSessionService { get; set; }
 
     private Guid _sessionId;
+    private bool _languageReady;
     private bool _browserReady;
     private ChatPanelComponent? _chatPane;
     private ChatInputComponent? _chatInput;
@@ -21,6 +22,10 @@ public partial class Home
     protected override async Task OnAfterRenderAsync(bool firstRender)
     {
         if (!firstRender) return;
+
+        await LanguageService.RestoreAsync();
+        _languageReady = true;
+        StateHasChanged();
 
         var browserSessionId = await ResolveBrowserSessionIdAsync();
         BrowserSessionContext.Set(browserSessionId);

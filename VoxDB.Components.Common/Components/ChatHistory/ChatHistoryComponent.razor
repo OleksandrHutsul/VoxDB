@@ -15,11 +15,20 @@
         <div class="chat-history-scroll">
             @foreach (var s in _sessions)
             {
-                <div class="flex items-center justify-between px-2 py-1 @(SelectedId == s.Id ? "bg-gray-200" : "")">
-                    <a href="javascript:void(0)" @onclick="() => Open(s.Id)">
-                        @s.Title
-                    </a>
-                    <button class="btn btn-danger btn-sm" @onclick="() => Delete(s.Id)">✕</button>
+                <div class="chat-history-item @(SelectedId == s.Id ? "is-selected" : null)">
+                    <button type="button"
+                            class="chat-history-open"
+                            title="@s.Title"
+                            @onclick="() => Open(s.Id)">
+                        <span class="chat-history-title">@s.Title</span>
+                    </button>
+                    <button type="button"
+                            class="chat-history-delete"
+                            title="@(LanguageService.IsUa ? "Видалити чат" : "Delete chat")"
+                            aria-label="@(LanguageService.IsUa ? "Видалити чат" : "Delete chat")"
+                            @onclick="() => Delete(s.Id)">
+                        ✕
+                    </button>
                 </div>
             }
         </div>
